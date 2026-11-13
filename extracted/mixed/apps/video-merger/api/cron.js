@@ -1,0 +1,1 @@
+const {cleanup}=require('../lib/db');const {json,cors}=require('../lib/http');module.exports=async(req,res)=>{cors(res);if(req.method!=='GET')return json(res,405,{error:'طريقة غير مدعومة'});try{await cleanup();return json(res,200,{ok:true});}catch(e){return json(res,500,{error:e.message});}};

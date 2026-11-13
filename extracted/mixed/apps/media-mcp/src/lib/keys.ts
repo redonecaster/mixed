@@ -1,0 +1,9 @@
+import {db,ensureSchema} from './turso';
+import {randomUUID} from 'node:crypto';
+export function maskKey(k:string){return k.length<12?k.slice(0,3)+'••••':k.slice(0,7)+'••••••••'+k.slice(-4);}
+export async function getKeyPool(providers:string[]){await ensureSchema();const marks=providers.map(()=>'?').join(',');const r=await db.execute({sql:`SELECT * FROM api_keys WHERE status!='disabled' AND provider IN (${marks}) ORDER BY created_at ASC,id ASC`,args:providers});return r.rows;}
+export async function addKey(provider:'kie'|'cometapi',apiKey:string,label=''){await ensureSchema();const dup=await db.execute({sql:'SELECT id FROM api_keys WHERE provider=? AND api_key=?',args:[provider,apiKey]});if(dup.rows.length)throw new Error('هذا المفتاح مضاف مسبقًا.');const id=randomUUID();await db.execute({sql:'INSERT INTO api_keys(id,provider,label,api_key) VALUES(?,?,?,?)',args:[id,provider,label,apiKey]});return id;}
+export async function listKeys(){await ensureSchema();const r=await db.execute('SELECT id,provider,label,status,usage_count,success_count,fail_count,last_used_at,last_checked_at,last_error,created_at,api_key FROM api_keys ORDER BY created_at ASC,id ASC');return r.rows.map(x=>({...x,api_key:maskKey(String(x.api_key))}));}
+export async function setKeyStatus(id:string,status:'active'|'disabled'){await ensureSchema();await db.execute({sql:'UPDATE api_keys SET status=? WHERE id=?',args:[status,id]});}
+export async function deleteKey(id:string){await ensureSchema();await db.execute({sql:'DELETE FROM api_keys WHERE id=?',args:[id]});}
+export async function recordKeyUse(id:string,ok:boolean,error?:string){await db.execute({sql:`UPDATE api_keys SET usage_count=usage_count+1,success_count=success_count+?,fail_count=fail_count+?,last_used_at=datetime('now'),last_checked_at=datetime('now'),last_error=? WHERE id=?`,args:[ok?1:0,ok?0:1,error??null,id]});}

@@ -1,0 +1,1 @@
+const fs=require('fs');const assert=require('assert');for(const f of ['api/jobs/index.js','api/upload.js','api/config.js','api/cron.js','lib/db.js','lib/http.js'])assert(fs.existsSync(f),`missing ${f}`);console.log('Scaffold smoke checks passed. Integration/E2E tests require installed dependencies and Turso credentials.');
