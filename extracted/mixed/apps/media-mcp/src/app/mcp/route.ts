@@ -1,5 +1,5 @@
 import {McpServer} from '@modelcontextprotocol/sdk/server/mcp.js';
-import {StreamableHTTPServerTransport} from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import {WebStandardStreamableHTTPServerTransport} from '@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js';
 import {z} from 'zod';
 import {runGeneration,refreshTask} from '@/lib/generation';
 import {listRecentTasks} from '@/lib/turso';
@@ -16,5 +16,5 @@ function server(){const s=new McpServer({name:'media-generator-mcp',version:'1.2
  s.tool('get_task','تتبع مهمة توليد صورة أو فيديو أو دمج عبر task_id وإرجاع الحالة والروابط.',{task_id:z.string()},async a=>{try{const t=await refreshTask(a.task_id);const result={task_id:a.task_id,status:t?.status,progress:t?.progress,result_urls:t?.result_urls_json?JSON.parse(String(t.result_urls_json)):[],message:t?.status==='completed'?'✅ اكتملت المهمة بنجاح': '⏳ المهمة قيد المعالجة'};return {content:[{type:'text',text:JSON.stringify(result)}]};}catch(e){return {isError:true,content:[{type:'text',text:e instanceof Error?e.message:'تعذر جلب المهمة.'}]};}});
  s.tool('list_media','أحدث الصور والفيديوهات والدمجات المخزنة بروابطها من قاعدة البيانات.',{type:z.enum(['image','video','merge']).optional(),status:z.enum(['completed','failed','processing']).optional(),limit:z.number().int().min(1).max(50).default(10)},async a=>{const rows=await listRecentTasks(a.limit,{type:a.type,status:a.status});return {content:[{type:'text',text:JSON.stringify(rows.map(x=>({task_id:x.id,type:x.type,status:x.status,model:x.model,result_urls:x.result_urls_json?JSON.parse(String(x.result_urls_json)):[],created_at:x.created_at}))) }]};});
  return s;}
-async function handle(req:Request){const token=process.env.MCP_ACCESS_TOKEN;if(token&&req.headers.get('authorization')!==`Bearer ${token}`)return new Response('Unauthorized',{status:401});const transport=new StreamableHTTPServerTransport({sessionIdGenerator:undefined});const s=server();await s.connect(transport);return transport.handleRequest(req);}
+async function handle(req:Request){const token=process.env.MCP_ACCESS_TOKEN;if(token&&req.headers.get('authorization')!==`Bearer ${token}`)return new Response('Unauthorized',{status:401});const transport=new WebStandardStreamableHTTPServerTransport({sessionIdGenerator:undefined});const s=server();await s.connect(transport);return transport.handleRequest(req);}
 export const POST=handle;export const GET=handle;export const DELETE=handle;

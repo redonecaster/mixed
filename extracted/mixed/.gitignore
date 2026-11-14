@@ -8,3 +8,7 @@ node_modules
 .DS_Store
 coverage
 .tmp
+
+# Temporary and backup files
+*.tsbuildinfo
+*.bak
